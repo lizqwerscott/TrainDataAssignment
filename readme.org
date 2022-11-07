@@ -1,8 +1,10 @@
 * TrainDataAssignment
 这是一个将标签数据整理成Yolov5训练格式的小工具。
 * Usage
-首先将数据放入data文件夹
+首先将数据放入data文件夹，没有请自己创建。
 
+
+运行main.py
 #+begin_src shell
   python main.py
 #+end_src

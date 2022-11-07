@@ -1,5 +1,5 @@
 * TrainDataAssignment
-这是一个将别人打好的标签数据整理成Yolov5训练格式的小工具。
+这是一个将标签数据整理成Yolov5训练格式的小工具。
 * Usage
 首先将数据放入data文件夹
 

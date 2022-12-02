@@ -1,95 +1,173 @@
-import os
-import json
+import cmd
 import shutil
 import utils
-import random
+import json
+import os
 
-def load_data(path: str) -> list:
-    result = []
 
-    for root, dirs, files in os.walk(path):
-        for name in files:
-            file_name, file_extension = os.path.splitext(name)
+class TrainData:
+    project_name: str
+    project_path: str
 
-            find_p = None
-            for item in result:
-                if item["name"] == file_name:
-                    find_p = item
-                    break
+    image_data_path: str
+    images_path: str
+    images_output_path: str
 
-            if find_p != None:
-                if file_extension in [".jpg", ".png"]:
-                    find_p["image"] = os.path.join(root, name)
-                elif file_extension == ".txt":
-                    find_p["label"] = os.path.join(root, name)
-                else:
-                    print("error: {}".format(os.path.join(root, name)))
-            else:
-                data = {}
-                data["name"] = file_name
-                if file_extension in [".jpg", ".png"]:
-                    data["image"] = os.path.join(root, name)
-                elif file_extension == ".txt":
-                    data["label"] = os.path.join(root, name)
+    def __init__(self, name: str, path: str) -> None:
+        self.project_name = name
+        self.project_path = path
+        utils.make_dir(path)
 
-                if len(data.keys()) == 2:
-                    result.append(data)
+        self.image_data_path = os.path.join(path, "image_data/")
+        utils.make_dir(self.image_data_path)
 
-    return result
+        self.images_path = os.path.join(path, "images/")
+        utils.make_dir(self.images_path)
 
-def split_train_var(data: list, scale: list):
-    length = len(data)
-    val_len = int(length * scale[1] * 0.1)
-    test_len = int(length * scale[2] * 0.1)
-    if val_len == 0:
-        val_len = 1
-    if test_len == 0:
-        test_len = 1
+        self.images_output_path = os.path.join(path, "images_output/")
+        utils.make_dir(self.images_output_path)
 
-    if scale[1] == 0:
-        val_len = 0
+    def save_project(self) -> dict:
+        data = {"name": self.project_name, "path": self.project_path}
+        return data
 
-    test_list = data[0:test_len]
-    val_list = data[test_len:test_len + val_len]
-    train_list = data[test_len + val_len:-1]
+    def unzip_and_rename(self):
+        utils.clear_dir(self.images_path)
+        files = os.listdir(self.image_data_path)
 
-    return (train_list, val_list, test_list)
+        for file in files:
+            file_path = os.path.join(self.image_data_path, file)
+            file_name, file_extension = os.path.splitext(file)
+            if file_extension in [".zip"]:
+                print("解压: {}".format(file_path))
+                unzip_path = os.path.join(self.image_data_path, file_name + "/")
+                utils.make_dir(unzip_path)
+                # 解压
+                shutil.unpack_archive(file_path, unzip_path)
+                # 重命名
+                utils.rename_dir(unzip_path, file_name)
+                # 移动
+                utils.move_files(unzip_path, self.images_path)
 
-def move_train_data(output_path: str, data: list):
-    images_path = "{}{}/".format(output_path, "images")
-    labels_path = "{}{}/".format(output_path, "labels")
+    def split_image(self, n: int) -> list[str]:
+        utils.clear_dir(self.images_output_path)
+        utils.train_split_n(self.images_path, self.images_output_path, n)
 
-    utils.make_dir(images_path)
-    utils.make_dir(labels_path)
+        dir_files = os.listdir(self.images_output_path)
+        result: list[str] = []
+        print("开始压缩")
+        for dir in dir_files:
+            dir_path = os.path.join(self.images_output_path, dir)
+            if os.path.isdir(dir_path):
+                dir_output_path = os.path.join(self.images_output_path, dir + ".zip")
+                # shutil.make_archive(dir_output_path, "zip", dir_path)
+                # Only support Linux
+                os.system("cd {} && zip -q -r {} {}".format(self.images_output_path, dir_output_path, dir))
+                result.append(dir_output_path)
 
-    for file in data:
-        picture_name = os.path.basename(file["image"])
-        label_name = os.path.basename(file["label"])
+        print("压缩完成")
+        return result
 
-        shutil.copy(file["image"], "{}{}".format(images_path, picture_name))
-        shutil.copy(file["image"], "{}{}".format(labels_path, label_name))
 
-def handle_data(data: list, result_path: str, split_scale = [7, 1, 2]):
+class Main(cmd.Cmd):
+    default_project: str = os.path.expanduser("~/labelProject/")
+    default_db: str = os.path.join(default_project, "projects.json")
+    train_projects: list[TrainData]
 
-    random.shuffle(data)
+    def __init__(self):
+        super(Main, self).__init__()
+        utils.make_dir(self.default_project)
+        self.train_projects = []
+        self.load_projects()
 
-    train_list, val_list, test_list = split_train_var(data, split_scale)
+    def search_project(self, name: str) -> TrainData | None:
+        for project in self.train_projects:
+            if project.project_name == name:
+                return project
+        return None
 
-    train_path = "{}{}/".format(result_path, "train")
-    val_path = "{}{}/".format(result_path, "val")
-    test_path = "{}{}/".format(result_path, "test")
+    def load_projects(self):
+        if not os.path.exists(self.default_db):
+            with open(self.default_db, "w") as f:
+                json.dump({"projects": []}, f)
+        with open(self.default_db, "r") as f:
+            projects = json.load(f)["projects"]
+        for project in projects:
+            if os.path.exists(project["path"]):
+                train_data = TrainData(project["name"], project["path"])
+                self.train_projects.append(train_data)
 
-    move_train_data(train_path, train_list)
-    move_train_data(val_path, val_list)
-    move_train_data(test_path, test_list)
+    def save_projects(self):
+        db_data = {"projects": []}
+        for project in self.train_projects:
+            db_data["projects"].append(project.save_project())
+
+        with open(self.default_db, "w") as f:
+            json.dump(db_data, f)
+
+    def do_listproject(self, line: str):
+        if len(self.train_projects) == 0:
+            print("没有项目")
+            return False
+        for i, project in enumerate(self.train_projects, 1):
+            print("{}: {}".format(i, project.project_name))
+
+    def do_create(self, line: str):
+        args = line.split()
+        if len(args) != 1:
+            print("Need project name")
+            return False
+        project_path = os.path.join(self.default_project, args[0] + "/")
+        self.train_projects.append(TrainData(args[0], project_path))
+        self.save_projects()
+        print(project_path)
+
+    def do_unzipmove(self, line: str):
+        args = line.split()
+        if len(args) != 1:
+            print("Need project name")
+            return False
+        project = self.search_project(args[0])
+        if project is None:
+            print("没找到这个项目")
+            return False
+        else:
+            print("开始解压")
+            project.unzip_and_rename()
+            print("解压完成")
+
+    def do_splitimage(self, line: str):
+        args = line.split()
+        if len(args) != 2:
+            print("Need project name and split n")
+            return False
+        project = self.search_project(args[0])
+        if project is None:
+            print("没找到这个项目")
+            return False
+        else:
+            try:
+                n = int(args[1])
+            except ValueError:
+                print("n 必须是数字")
+                return False
+            if n <= 0:
+                print("n 必须大于0")
+                return False
+            result = project.split_image(n)
+            print("生成好的压缩文件:")
+            for zipfile in result:
+                print(zipfile)
+
+    def do_grent(self, line: str):
+        print("Hello")
+
+    def do_EOF(self, line: str):
+        return True
+
+    def do_quit(self, line: str):
+        return True
 
 if __name__ == "__main__":
-    data_path = "./data/"
-    result_path = "./output/"
-
-    utils.make_dir(data_path)
-    utils.make_dir(result_path)
-
-    datas = load_data(data_path)
-
-    handle_data(datas, result_path)
+    main = Main()
+    main.cmdloop()

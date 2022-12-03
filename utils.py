@@ -64,6 +64,26 @@ def load_data(path: str) -> list:
     return result
 
 
+def load_data_il(images_path: str, labels_path: str) -> list:
+    result: list[dict] = []
+
+    for image in os.listdir(images_path):
+        image_name, _ = os.path.splitext(image)
+
+        data = {}
+        data["name"] = image_name
+        data["image"] = os.path.join(images_path, image)
+
+        for label in os.listdir(labels_path):
+            label_name, _ = os.path.splitext(label)
+            if label_name == image_name:
+                data["label"] = os.path.join(labels_path, label)
+                break
+        result.append(data)
+
+    return result
+
+
 def split_train_var(data: list, scale: list):
     length = len(data)
     val_len = int(length * scale[1] * 0.1)
@@ -121,6 +141,9 @@ def verify_data(image_path: str, label_path: str):
     image_list = os.listdir(image_path)
     label_list = os.listdir(label_path)
 
+    no_images: list[str] = []
+    no_labels: list[str] = []
+
     for image in image_list:
         a = os.path.splitext(image)[0]
         is_have = False
@@ -131,6 +154,7 @@ def verify_data(image_path: str, label_path: str):
                 break
 
         if not is_have:
+            no_images.append(image)
             print(image)
 
     for label in label_list:
@@ -143,6 +167,7 @@ def verify_data(image_path: str, label_path: str):
                 break
 
         if not is_have:
+            no_labels.append(label)
             print(label)
 
 

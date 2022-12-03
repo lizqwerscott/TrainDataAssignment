@@ -13,6 +13,11 @@ class TrainData:
     images_path: str
     images_output_path: str
 
+    label_data_path: str
+    labels_path: str
+
+    final_output_path: str
+
     def __init__(self, name: str, path: str) -> None:
         self.project_name = name
         self.project_path = path
@@ -26,6 +31,15 @@ class TrainData:
 
         self.images_output_path = os.path.join(path, "images_output/")
         utils.make_dir(self.images_output_path)
+
+        self.label_data_path = os.path.join(path, "label_data/")
+        utils.make_dir(self.label_data_path)
+
+        self.labels_path = os.path.join(path, "labels/")
+        utils.make_dir(self.labels_path)
+
+        self.final_output_path = os.path.join(path, "final_output/")
+        utils.make_dir(self.final_output_path)
 
     def save_project(self) -> dict:
         data = {"name": self.project_name, "path": self.project_path}
@@ -67,6 +81,31 @@ class TrainData:
 
         print("压缩完成")
         return result
+
+    def handle_labels(self):
+        # 解压
+        files = os.listdir(self.label_data_path)
+
+        for file in files:
+            file_path = os.path.join(self.label_data_path, file)
+            file_name, file_extension = os.path.splitext(file)
+            if file_extension in [".zip"]:
+                print("解压: {}".format(file_path))
+                unzip_path = os.path.join(self.label_data_path, file_name + "/")
+                utils.make_dir(unzip_path)
+                # 解压
+                shutil.unpack_archive(file_path, unzip_path)
+
+        # 移动标签
+        utils.move_files(self.label_data_path, self.labels_path, [".txt"])
+
+    def verify_label(self):
+        utils.verify_data(self.images_path, self.labels_path)
+
+    def generate_train_data(self):
+        datas = utils.load_data_il(self.images_path, self.labels_path)
+        utils.handle_data(datas, self.final_output_path)
+        os.system("cd {} && zip -q -r {}.zip final_output".format(self.project_path, self.project_name))
 
 
 class Main(cmd.Cmd):
@@ -110,7 +149,13 @@ class Main(cmd.Cmd):
             print("没有项目")
             return False
         for i, project in enumerate(self.train_projects, 1):
-            print("{}: {}".format(i, project.project_name))
+            print("{}: {} | {}".format(i, project.project_name, project.project_path))
+
+    def help_bar(self, line: str):
+        print("首先create 创建项目, 移动图片数据到images_data, 运行unzipmove 然后运行 splitimage 就可以完成图片的处理")
+        print("handelLabel 处理标签, verifyLabel验证图片和标签的匹配性")
+        print("运行generateTrainData 生成最终数据")
+
 
     def do_create(self, line: str):
         args = line.split()
@@ -158,6 +203,43 @@ class Main(cmd.Cmd):
             print("生成好的压缩文件:")
             for zipfile in result:
                 print(zipfile)
+
+    def do_handelLabel(self, line: str):
+        args = line.split()
+        if len(args) != 1:
+            print("Need project name and split n")
+            return False
+        project = self.search_project(args[0])
+        if project is None:
+            print("没找到这个项目")
+            return False
+        else:
+            project.handle_labels()
+
+
+    def do_verifyLabel(self, line: str):
+        args = line.split()
+        if len(args) != 1:
+            print("Need project name and split n")
+            return False
+        project = self.search_project(args[0])
+        if project is None:
+            print("没找到这个项目")
+            return False
+        else:
+            project.verify_label()
+
+    def do_generateTrainData(self, line: str):
+        args = line.split()
+        if len(args) != 1:
+            print("Need project name and split n")
+            return False
+        project = self.search_project(args[0])
+        if project is None:
+            print("没找到这个项目")
+            return False
+        else:
+            project.generate_train_data()
 
     def do_grent(self, line: str):
         print("Hello")

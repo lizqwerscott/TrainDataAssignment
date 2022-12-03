@@ -1,5 +1,4 @@
 import os
-import zipfile
 import json
 import shutil
 import random

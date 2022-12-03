@@ -1,0 +1,11 @@
+setup.cfg
+setup.py
+src/assignment/__init__.py
+src/assignment/train_assignment.py
+src/assignment/utils.py
+src/assignment.egg-info/PKG-INFO
+src/assignment.egg-info/SOURCES.txt
+src/assignment.egg-info/dependency_links.txt
+src/assignment.egg-info/entry_points.txt
+src/assignment.egg-info/requires.txt
+src/assignment.egg-info/top_level.txt

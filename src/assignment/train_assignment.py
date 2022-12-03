@@ -1,6 +1,6 @@
 import cmd
 import shutil
-import utils
+import assignment.utils as utils
 import json
 import os
 
@@ -156,7 +156,6 @@ class Main(cmd.Cmd):
         print("handelLabel 处理标签, verifyLabel验证图片和标签的匹配性")
         print("运行generateTrainData 生成最终数据")
 
-
     def do_create(self, line: str):
         args = line.split()
         if len(args) != 1:
@@ -216,7 +215,6 @@ class Main(cmd.Cmd):
         else:
             project.handle_labels()
 
-
     def do_verifyLabel(self, line: str):
         args = line.split()
         if len(args) != 1:
@@ -250,6 +248,11 @@ class Main(cmd.Cmd):
     def do_quit(self, line: str):
         return True
 
-if __name__ == "__main__":
+
+def main():
     main = Main()
     main.cmdloop()
+
+
+if __name__ == "__main__":
+    main()

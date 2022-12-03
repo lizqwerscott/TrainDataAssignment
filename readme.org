@@ -2,9 +2,7 @@
 这是一个将标签数据整理成Yolov5训练格式的小工具。
 🐛目前仅支持Linux,不支持Windows.
 * Usage
-首先将数据放入./data/文件夹，没有请自己创建。
-运行main.py
+运行main.py将提供一种交互式命令行。
 #+begin_src shell
   python main.py
 #+end_src
-处理好的数据在 ./output/ 文件夹中

@@ -1,8 +1,15 @@
 * TrainDataAssignment
 这是一个将标签数据整理成Yolov5训练格式的小工具。
 🐛目前仅支持Linux,不支持Windows.
-* Usage
-运行main.py将提供一种交互式命令行。
+* Install
 #+begin_src shell
-  python main.py
+  python setup.py bdist_wheel
+#+end_src
+#+begin_src shell
+  pip install .
+#+end_src
+* Usage
+将提供一种交互式命令行处理数据。
+#+begin_src shell
+  train_assignment
 #+end_src

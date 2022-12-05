@@ -13,6 +13,6 @@
 #+begin_src shell
   train_assignment
 #+end_src
-* TODO
+* Need TODO
 1. 添加优化的GUI界面
 2. 优化处理结果
